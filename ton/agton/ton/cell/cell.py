@@ -28,7 +28,7 @@ class Cell(ABC):
         self.refs = tuple(refs)
         self.special = special
         if len(self.refs) > Cell.MAX_REFS:
-                raise ValueError(f"Cell can have at most {Cell.MAX_REFS} references, got {len(self.refs)}")
+            raise ValueError(f"Cell can have at most {Cell.MAX_REFS} references, got {len(self.refs)}")
         if len(self.data) > Cell.MAX_BITS:
             raise ValueError(f"Cell can have at most {Cell.MAX_BITS} bits in data, got {len(self.data)}")
     
@@ -95,6 +95,12 @@ class Cell(ABC):
         return roots[0]
     
     def begin_parse(self) -> Slice:
+        if self.special:
+            raise ValueError("Can't parse exotic cells")
+        from .slice import Slice
+        return Slice(self, 0, len(self.data), 0, len(self.refs))
+    
+    def begin_parse_exotic(self) -> Slice:
         from .slice import Slice
         return Slice(self, 0, len(self.data), 0, len(self.refs))
     

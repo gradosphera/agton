@@ -259,3 +259,6 @@ class Slice:
         if not isinstance(value, Slice):
             return False
         return self.to_cell() == value.to_cell()
+    
+    def __hash__(self) -> int:
+        return hash(self.to_cell())
