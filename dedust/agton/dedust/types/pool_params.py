@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Self
 
 from agton.ton import Builder, Slice, TlbConstructor
 
 from .asset import Asset, asset
-from .pool_type import PoolType, pool_type
+from .pool_type import PoolType, Volatile, Stable, pool_type
 
 
 @dataclass(frozen=True)
@@ -21,7 +23,7 @@ class PoolParams(TlbConstructor):
         return None
 
     @classmethod
-    def deserialize_fields(cls, s: Slice) -> Self:
+    def deserialize_fields(cls, s: Slice) -> PoolParams:
         t = s.load_tlb(pool_type)
         a0 = s.load_tlb(asset)
         a1 = s.load_tlb(asset)
@@ -34,3 +36,11 @@ class PoolParams(TlbConstructor):
             .store_tlb(self.asset0)
             .store_tlb(self.asset1)
         )
+    
+    @classmethod
+    def volatile(cls, asset0: Asset, asset1: Asset) -> PoolParams:
+        return PoolParams(Volatile(), asset0, asset1)
+
+    @classmethod
+    def stable(cls, asset0: Asset, asset1: Asset) -> PoolParams:
+        return PoolParams(Stable(), asset0, asset1)
