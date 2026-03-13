@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 from collections.abc import Mapping
 from typing import Any, Literal, overload, Self
 
@@ -58,6 +60,7 @@ class BaseApiClient:
         proxies: Mapping[str, str] | None = None,
         verify: bool | str = True,  # path to CA bundle or bool
         user_agent: str = "BaseApiClient/2.0 (+https://example.com)",
+        rps: float | None = None,
     ) -> None:
         if not base_url.endswith("/"):
             base_url += "/"
@@ -65,6 +68,12 @@ class BaseApiClient:
         self.verify = verify
         self.proxies = dict(proxies) if proxies else None
         self.timeout = float(timeout) if timeout is not None else self.DEFAULT_TIMEOUT
+        if rps is not None and rps <= 0:
+            raise ValueError("rps should be positive")
+        self.rps = float(rps) if rps is not None else None
+        self._min_request_interval = (1.0 / self.rps) if self.rps is not None else 0.0
+        self._request_gate = threading.Lock()
+        self._next_request_at = 0.0
 
         sess = requests.Session()
 
@@ -190,6 +199,7 @@ class BaseApiClient:
         url = self._build_url(path) if not absolute_url else absolute_url
 
         req_headers = self._merge_headers(headers)
+        self._wait_for_rate_limit()
 
         resp = self.session.request(
             method=method.upper(),
@@ -229,6 +239,16 @@ class BaseApiClient:
 
     def _coerce_timeout(self, timeout: float | None) -> float:
         return float(timeout) if timeout is not None else self.timeout
+
+    def _wait_for_rate_limit(self) -> None:
+        if self.rps is None:
+            return
+        with self._request_gate:
+            now = time.monotonic()
+            if now < self._next_request_at:
+                time.sleep(self._next_request_at - now)
+                now = time.monotonic()
+            self._next_request_at = now + self._min_request_interval
 
     def _handle_response(self, resp: requests.Response) -> Any:
         self._raise_for_status(resp)

@@ -1,88 +1,85 @@
 import base64
 
-from typing import Literal
+from typing import Literal, Iterator
 
 from .base_api_client import BaseApiClient
 from .provider import Provider
 
-from agton.ton import Cell, Slice, MsgAddressInt, Network
+from agton.ton import Cell, Slice, MsgAddressInt, Address, Network, Account, Transaction
+from agton.ton.types.account import account
 from agton.ton.types.tvm_value import TvmValue
 
-def encode_tvm_value(v: TvmValue) -> str:
+def encode_tvm_value(v: TvmValue) -> dict:
     if isinstance(v, int):
-        return str(v)
-        # return {
-        #     'type': 'int257',
-        #     'value': hex(v) 
-        # }
+        return {
+            'type': 'int257',
+            'value': hex(v) 
+        }
     if isinstance(v, Cell):
-        return v.to_boc().hex()
-        # return {
-        #     'type': 'cell',
-        #     'value': v.to_boc().hex()
-        # }
+        return {
+            'type': 'cell',
+            'value': v.to_boc().hex()
+        }
     if isinstance(v, Slice):
-        return v.to_cell().to_boc().hex()
-        # return {
-        #     'type': 'slice',
-        #     'value': v.to_cell().to_boc().hex()
-        # }
+        return {
+            'type': 'slice',
+            'value': v.to_cell().to_boc().hex()
+        }
     raise ValueError('Stack supports only int, Cell and Slice types')
 
 def decode_tvm_value(d: dict[str, str]) -> TvmValue:
     type_ = d.get('type')
-    value = d.get('value')
     if type_ is None:
         raise ValueError('No type for tvm value')
+    value = d.get(type_)
     if value is None:
         raise ValueError('No value for tvm value')
 
     if type_ == 'num':
         return int(value, base=16)
     if type_ == 'cell':
-        return Cell.from_boc(base64.b64decode(value))
+        return Cell.from_boc(value)
     if type_ == 'slice':
-        return Cell.from_boc(base64.b64decode(value)).to_slice()
+        return Cell.from_boc(value)
 
     raise ValueError(f'Unexpected type for tvm value: {type_}')
 
 class TonApiClient(Provider, BaseApiClient):
     def __init__(self, *,
-                 net: Literal['testnet', 'mainnet'] = 'testnet',
-                 api_key: str | None = None):
+                 network: Literal['testnet', 'mainnet'] | Network = 'testnet',
+                 api_key: str | None = None,
+                 rps: float | None = None):
+        if network == 'mainnet':
+            network = Network.mainnet
+        if network == 'testnet':
+            network = Network.testnet
+        Provider.__init__(self, network)
+
         host: str
-        if net == 'mainnet':
+        if network == Network.mainnet:
             host = 'https://tonapi.io/'
-        elif net == 'testnet':
+        elif network == Network.testnet:
             host = 'https://testnet.tonapi.io/'
         else:
             raise ValueError(f"Network should be 'mainnet' or 'testnet', but got {net}")
 
-        BaseApiClient.__init__(self, host, api_key=('X-Api-Key', api_key) if api_key else None)
+        BaseApiClient.__init__(self, host, api_key=('X-Api-Key', api_key) if api_key else None, rps=rps)
 
 
     def raw_run_get_method(self,
-                        a: MsgAddressInt,
-                        method_id: int,
-                        stack: tuple[TvmValue, ...],
-                        method: str | None = None) -> tuple[TvmValue, ...]:
+                           a: MsgAddressInt,
+                           method_id: int,
+                           stack: tuple[TvmValue, ...],
+                           method: str | None = None) -> tuple[TvmValue, ...]:
         if method is None:
             raise ValueError('method_id as integer is not supported by TonApi')
-        # data = {
-        #     'args': [
-        #         encode_tvm_value(v) for v in stack
-        #     ]
-        # }
-        args = ''
-        if stack:
-            args = '?args=' + '&args='.join(encode_tvm_value(v) for v in stack)
-            args += '&fix_order=true'
+        data = {
+            'args': [
+                encode_tvm_value(v) for v in stack
+            ]
+        }
         url = f'/v2/blockchain/accounts/{a}/methods/{method}'
-        if args:
-            url += args
-        print(self.base_url + url)
-        r = self.post(url)
-        print(r)
+        r = self.post(url, json=data)
         s = r['stack']
         c = r['exit_code']
         if c != 0:
@@ -94,3 +91,31 @@ class TonApiClient(Provider, BaseApiClient):
             'boc': message.hex()
         }
         self.post('/v2/blockchain/message', json=data)
+    
+    def get_account_state(self, address: Address) -> Account:
+        url = f'/v2/liteserver/get_account_state/{address}'
+        r = self.get(url)
+        state = r['state']
+        state = Cell.from_boc(state)
+        return state.begin_parse().load_tlb(account)
+    
+    def get_account_transactions(self, address: Address) -> Iterator[Transaction]:
+        url = f'/v2/blockchain/accounts/{address}/transactions'
+        before_lt = None
+        limit = 100
+        while True:
+            params = {"limit": limit}
+            if before_lt is not None:
+                params["before_lt"] = before_lt
+            r = self.get(url, params=params)
+            txs = r["transactions"]
+            if not txs:
+                break
+            for tx in txs:
+                raw = tx["raw"]
+                cell = Cell.from_boc(raw)
+                transaction = Transaction.from_cell(cell)
+                yield transaction
+            if len(txs) < limit:
+                break 
+            before_lt = txs[-1]["lt"]
