@@ -27,7 +27,7 @@ def encode_tvm_value(v: TvmValue) -> dict:
         }
     raise ValueError('Stack supports only int, Cell and Slice types')
 
-def decode_tvm_value(d: dict[str, str]) -> TvmValue:
+def decode_tvm_value(d: dict) -> TvmValue:
     type_ = d.get('type')
     if type_ is None:
         raise ValueError('No type for tvm value')
@@ -41,6 +41,8 @@ def decode_tvm_value(d: dict[str, str]) -> TvmValue:
         return Cell.from_boc(value)
     if type_ == 'slice':
         return Cell.from_boc(value)
+    if type_ == 'tuple':
+        return tuple(decode_tvm_value(v) for v in value)
 
     raise ValueError(f'Unexpected type for tvm value: {type_}')
 
