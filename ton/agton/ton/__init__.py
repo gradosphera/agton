@@ -11,6 +11,7 @@ from .types import Hashmap, HashmapE, HashmapCodec
 from .types import CurrencyCollection
 from .types import StateInit
 from .types import ActionSendMsg
+from .types import Transaction, TransactionOrdinary
 
 from .provider import ToncenterClient, TonApiClient, Provider
 from .contracts.contract import Contract

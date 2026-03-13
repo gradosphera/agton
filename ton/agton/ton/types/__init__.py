@@ -24,6 +24,7 @@ from .account import Account, AccountNone, AccountOrdinary, account
 from .shard_account import ShardAccount
 
 from .transaction import Transaction
+from .transaction_descr import TransactionOrdinary
 
 from .out_action import OutAction, ActionSendMsg, ActionSetCode, ActionReserveCurrency, ActionChangeLibrary, out_action
 from .out_list import OutList, OutListEmpty, OutListCons, out_list
