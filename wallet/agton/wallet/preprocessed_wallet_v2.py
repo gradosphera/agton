@@ -47,18 +47,23 @@ class PreprocessedWalletData(TlbConstructor):
 
 class PreprocessedWalletV2(Contract):
     def __init__(self,
+                 provider: Provider,
                  address: Address,
-                 private_key: bytes,
-                 provider: Provider | None = None) -> None:
+                 private_key: bytes) -> None:
         self.private_key = private_key
         super().__init__(address, provider)
 
     def create_signed_external(self, 
                                actions: Iterable[ActionSendMsg],
-                               valid_until: int,
-                               seqno: int,
+                               seqno: int | None = None,
+                               valid_until: int | None = None,
                                use_dummy_private_key: bool = False,
                                include_state_init: bool = False) -> Message:
+        if valid_until is None:
+            t = datetime.now() + timedelta(minutes=5)
+            valid_until = int(t.timestamp())
+        if seqno is None:
+            seqno = self.seqno()
         actions = tuple(actions)
         if len(actions) > 255:
             raise ValueError('WalletV3R2 supports only up to 255 messages')
@@ -97,16 +102,13 @@ class PreprocessedWalletV2(Contract):
     
     def execute(self,
                 actions: Iterable[ActionSendMsg],
-                seqno: int,
+                seqno: int | None = None,
                 valid_until: int | None = None,
                 *,
                 allow_dangerous: bool = False) -> bytes:
         for action in actions:
             self._safety_check(action.mode, allow_dangerous)
-        if valid_until is None:
-            t = datetime.now() + timedelta(minutes=50)
-            valid_until = int(t.timestamp())
-        signed_message = self.create_signed_external(actions, valid_until, seqno)
+        signed_message = self.create_signed_external(actions, seqno, valid_until)
         return self.send_external_message(signed_message)
     
     def deploy_via_external(self) -> bytes:
@@ -116,56 +118,46 @@ class PreprocessedWalletV2(Contract):
         return self.send_external_message(signed_message)
 
     def send(self,
-             seqno: int,
              msg: MessageRelaxed,
              mode: int = 3,
              valid_until: int | None = None,
              *, 
              allow_dangerous: bool = False) -> bytes:
-        return self.execute([ActionSendMsg(msg, mode)], seqno, valid_until, allow_dangerous=allow_dangerous)
-    
-    def send_many(self,
-                  seqno: int,
-                  msgs: Iterable[MessageRelaxed],
-                  modes: Iterable[int] | int = 3,
-                  valid_until: int | None = None,
-                  *, 
-                  allow_dangerous: bool = False) -> bytes:
-        if isinstance(modes, int):
-            modes = repeat(modes)
-            strict = False
-        else:
-            strict = True
-        actions = tuple(
-            ActionSendMsg(msg, mode)
-            for msg, mode in zip(msgs, modes, strict=strict)
-        )
-        return self.execute(actions, seqno, valid_until, allow_dangerous=allow_dangerous)
+        return self.execute([ActionSendMsg(msg, mode)], valid_until, allow_dangerous=allow_dangerous)
+
+    def get_storage(self) -> PreprocessedWalletData:
+        data = self.get_data()
+        if data is None:
+            raise ValueError('wallet is not deployed')
+        return PreprocessedWalletData.from_cell(data)
+
+    def seqno(self) -> int:
+        return self.get_storage().seqno
 
     @classmethod
     def from_private_key(cls,
+                         provider: Provider,
                          private_key: bytes,
-                         wc: int = 0,
-                         provider: Provider | None = None) -> PreprocessedWalletV2:
+                         wc: int = 0) -> PreprocessedWalletV2:
         public_key = private_key_to_public_key(private_key)
         data = PreprocessedWalletData.initial(public_key)
         address = Address.from_state_init(StateInit(
             code=PREPROCESSED_WALLET_V2_CODE, 
             data=data.to_cell()
         ), wc)
-        return cls(address, private_key, provider)
+        return cls(provider, address, private_key)
 
     @classmethod
     def from_mnemonic(cls,
+                      provider: Provider,
                       mnemonic: str,
-                      wc: int = 0,
-                      provider: Provider | None = None) -> PreprocessedWalletV2:
+                      wc: int = 0) -> PreprocessedWalletV2:
         private_key = mnemonic_to_private_key(mnemonic)
-        return cls.from_private_key(private_key, wc, provider)
+        return cls.from_private_key(provider, private_key, wc)
 
     @classmethod
     def create(cls,
-               wc: int = 0,
-               provider: Provider | None = None) -> tuple[PreprocessedWalletV2, str]:
+               provider: Provider,
+               wc: int = 0) -> tuple[PreprocessedWalletV2, str]:
         mnemonic = new_mnemonic()
-        return cls.from_mnemonic(mnemonic, wc, provider), mnemonic
+        return cls.from_mnemonic(provider, mnemonic, wc), mnemonic
