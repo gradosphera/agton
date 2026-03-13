@@ -533,10 +533,10 @@ class WalletV5(Contract):
             case _: raise TypeError(f'Unexpected result for seqno: {s!r}')
     
     def add_extension(self, address: Address, valid_until: int | None = None) -> bytes:
-        return self.execute([], [AddExtension(address)], valid_until)
+        return self.execute([], [AddExtension(address)], valid_until=valid_until)
     
     def delete_extension(self, address: Address, valid_until: int | None = None) -> bytes:
-        return self.execute([], [DeleteExtension(address)], valid_until)
+        return self.execute([], [DeleteExtension(address)], valid_until=valid_until)
     
     @classmethod
     def from_private_key(cls,
