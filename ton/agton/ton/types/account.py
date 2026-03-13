@@ -53,6 +53,6 @@ class AccountOrdinary(TlbConstructor):
 Account = AccountOrdinary | AccountNone
 
 def account(s: Slice) -> Account:
-    match s.load_bit():
+    match s.preload_bit():
         case 0: return AccountNone.deserialize(s)
         case 1: return AccountOrdinary.deserialize(s)
