@@ -63,7 +63,8 @@ class Transaction(TlbConstructor):
         match out_msgs_hashmap_e:
             case None: out_msgs = tuple()
             case Hashmap() as hashmap:
-                out_msgs = tuple(OUT_MSGS_CODEC.decode(hashmap).values())
+                out_msgs_dict = OUT_MSGS_CODEC.decode(hashmap)
+                out_msgs = tuple(out_msgs_dict[i] for i in range(outmsg_cnt))
         total_fees = s.load_tlb(CurrencyCollection)
         state_update = s.load_ref_tlb(HashUpdate)
         description = s.load_ref_tlb(transaction_descr)
