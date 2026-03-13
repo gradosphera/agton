@@ -6,6 +6,7 @@ from .types.network import Network
 
 from .types.tlb import TlbConstructor
 from .types import Address, AddrNone, AddrVar, AddrExtern, MsgAddress, MsgAddressInt, MsgAddressExt
+from .types import Account
 from .types import Message, MessageRelaxed
 from .types import Hashmap, HashmapE, HashmapCodec
 from .types import CurrencyCollection

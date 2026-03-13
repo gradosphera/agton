@@ -569,3 +569,9 @@ class WalletV5(Contract):
                wc: int = 0) -> tuple[WalletV5, str]:
         mnemonic = new_mnemonic()
         return cls.from_mnemonic(provider, mnemonic, counter, wc), mnemonic
+
+    def get_storage(self) -> WalletV5Data:
+        data = self.get_data()
+        if data is None:
+            raise ValueError('wallet is not deployed')
+        return WalletV5Data.from_cell(data)
