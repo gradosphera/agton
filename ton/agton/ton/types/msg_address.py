@@ -10,6 +10,7 @@ from agton.ton.common.bitstring import BitString
 
 from ..cell.slice import Slice
 from ..cell.builder import Builder
+from .state_init import StateInit
 from .tlb import TlbConstructor, TlbDeserializationError
 
 from ..crypto import crc16
@@ -122,6 +123,10 @@ class AddrStd(TlbConstructor):
         address = s.load_bytes(32)
         return cls(workchain, address, anycast)
     
+    @classmethod
+    def from_state_init(cls, state_init: StateInit, wc: int = 0) -> AddrStd:
+        return Address(wc, state_init.to_cell().hash())
+
     class ParseError(ValueError):
         pass
 
@@ -166,7 +171,16 @@ class AddrStd(TlbConstructor):
         return cls(wc, addr), AddressFlags(bounceable, testnet_only)
 
     @classmethod
+    def parse_raw(cls, s: str) -> Self:
+        wc, hashpart = s.split(':')
+        wc = int(wc)
+        hashpart = int(hashpart, 16).to_bytes(32)
+        return cls(wc, hashpart)
+
+    @classmethod
     def parse(cls, s: str) -> Self:
+        if ':' in s:
+            return cls.parse_raw(s)
         a, _ = cls.parse_with_flags(s)
         return a
     
