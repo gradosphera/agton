@@ -3,7 +3,8 @@ from .messages import (
     JettonBurn,
     JettonInternalTransfer,
     JettonNotify,
-    JettonMint
+    JettonMint,
+    PtonTransfer
 )
 
 from .contracts import JettonWallet, JettonMaster
