@@ -170,7 +170,7 @@ class Slice:
         if self.remaining_bits % 8 != 0:
             raise ValueError(f'Invalid string length: {self.remaining_bits}')
         res = self.load_bytes(self.remaining_bits // 8)
-        if not self.remaining_refs:
+        if self.remaining_refs:
             res += self.load_ref().begin_parse().load_snake_bytes()
         return res
 
