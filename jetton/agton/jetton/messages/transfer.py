@@ -63,7 +63,7 @@ class JettonInternalTransfer(TlbConstructor):
     query_id: int
     amount: int
     sender: MsgAddress
-    response_destination: Address
+    response_destination: MsgAddress
     forward_amount: int
     forward_payload: Cell
 
@@ -76,10 +76,13 @@ class JettonInternalTransfer(TlbConstructor):
         query_id = s.load_uint(64)
         amount = s.load_coins()
         sender = s.load_msg_address()
-        response_destination = s.load_address()
+        response_destination = s.load_msg_address()
         forward_amount = s.load_coins()
-        forward_payload = s.load_maybe_ref()
-        if forward_payload is None:
+        if s.remaining_bits:
+            forward_payload = s.load_maybe_ref()
+            if forward_payload is None:
+                forward_payload = s.load_cell()
+        else:
             forward_payload = Cell.empty()
         return cls(query_id, amount, sender, response_destination, forward_amount, forward_payload)
 
@@ -87,7 +90,7 @@ class JettonInternalTransfer(TlbConstructor):
         b.store_uint(self.query_id, 64)
         b.store_coins(self.amount)
         b.store_msg_address(self.sender)
-        b.store_address(self.response_destination)
+        b.store_msg_address(self.response_destination)
         b.store_coins(self.forward_amount)
         b.store_maybe_ref(self.forward_payload)
         return b

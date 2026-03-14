@@ -1,3 +1,9 @@
-from .messages import JettonTransfer, JettonBurn, JettonInternalTransfer, JettonNotify
+from .messages import (
+    JettonTransfer,
+    JettonBurn,
+    JettonInternalTransfer,
+    JettonNotify,
+    JettonMint
+)
 
 from .contracts import JettonWallet, JettonMaster
