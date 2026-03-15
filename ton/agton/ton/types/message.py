@@ -142,7 +142,37 @@ class Message(TlbConstructor):
             import_fee=import_fee
         )
         return cls(info, init, body)
+    
+    def is_internal(self) -> bool:
+        return isinstance(self.info, IntMsgInfo)
+    
+    def is_external_in(self) -> bool:
+        return isinstance(self.info, ExtInInfo)
+    
+    def is_external_out(self) -> bool:
+        return isinstance(self.info, ExtOutInfo)
 
+    @property
+    def internal_info(self) -> IntMsgInfo:
+        info = self.info
+        if not isinstance(info, IntMsgInfo):
+            raise TypeError("Expected internal message")
+        return info
+    
+    @property
+    def external_in_info(self) -> ExtInInfo:
+        info = self.info
+        if not isinstance(info, ExtInInfo):
+            raise TypeError("Expected external-in message")
+        return info
+    
+    @property
+    def external_out_info(self) -> ExtOutInfo:
+        info = self.info
+        if not isinstance(info, ExtOutInfo):
+            raise TypeError("Expected external-out message")
+        return info
+    
     def get_normalized_hash(self) -> bytes:
         if not isinstance(self.info, ExtInInfo):
             raise ValueError('Can calculate normalized hash only from External-in message')

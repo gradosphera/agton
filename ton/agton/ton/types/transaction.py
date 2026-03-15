@@ -7,7 +7,7 @@ from .account_status import AccountStatus, account_status
 from .message import Message
 from .currency_collection import CurrencyCollection
 from .hash_update import HashUpdate
-from .transaction_descr import TransactionDescr, transaction_descr
+from .transaction_descr import TransactionDescr, TransactionOrdinary, transaction_descr
 from .hashmap import Hashmap, HashmapCodec
 
 OUT_MSGS_CODEC = (
@@ -28,7 +28,7 @@ class Transaction(TlbConstructor):
         total_fees:CurrencyCollection state_update:^(HASH_UPDATE Account)
         description:^TransactionDescr = Transaction;
     '''
-    account_addr: bytes
+    account_addr: bytes = field(repr=False)
     lt: int
     prev_trans_hash: bytes = field(repr=False)
     prev_trans_lt: int
@@ -39,7 +39,7 @@ class Transaction(TlbConstructor):
     in_msg: Message | None
     out_msgs: tuple[Message, ...]
     total_fees: CurrencyCollection
-    state_update: HashUpdate
+    state_update: HashUpdate = field(repr=False)
     description: TransactionDescr
 
     @classmethod
@@ -90,3 +90,17 @@ class Transaction(TlbConstructor):
         b.store_ref_tlb(self.state_update)
         b.store_ref_tlb(self.description)
         return b
+
+    @property
+    def ordinary(self) -> TransactionOrdinary:
+        descr = self.description
+        if not isinstance(descr, TransactionOrdinary):
+            raise TypeError("Expected TransactionOrdinary")
+        return descr
+
+    @property
+    def in_message(self) -> Message:
+        msg = self.in_msg
+        if msg is None:
+            raise TypeError("Transaction has no incoming message")
+        return msg
