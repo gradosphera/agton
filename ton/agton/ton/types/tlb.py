@@ -23,7 +23,7 @@ class TlbConstructor(ABC):
     def serialize_fields(self, b: Builder) -> Builder: ...
 
     @staticmethod
-    def normalize_tag(tag: tuple[int, int] | None) -> BitString:
+    def _normalize_tag(tag: tuple[int, int] | None) -> BitString:
         if tag is None:
             return BitString()
         return int2bs(tag[0], tag[1])
@@ -32,7 +32,7 @@ class TlbConstructor(ABC):
     @classmethod
     def deserialize(cls, s: Slice) -> Self:
         try:
-            s.skip_prefix(TlbConstructor.normalize_tag(cls.tag()))
+            s.skip_prefix(TlbConstructor._normalize_tag(cls.tag()))
         except Exception:
             raise TlbDeserializationError('Tag mismatch')
         return cls.deserialize_fields(s)
@@ -41,7 +41,7 @@ class TlbConstructor(ABC):
     def serialize(self, b: Builder | None = None) -> Builder:
         if b is None:
             b = Builder()
-        b.store_bits(TlbConstructor.normalize_tag(self.tag()))
+        b.store_bits(TlbConstructor._normalize_tag(self.tag()))
         self.serialize_fields(b)
         return b
 
@@ -63,3 +63,10 @@ class TlbConstructor(ABC):
     @classmethod
     def from_cell(cls, c: Cell) -> Self:
         return cls.from_slice(c.begin_parse())
+    
+    @classmethod
+    def try_from_cell(cls, c: Cell) -> Self | None:
+        try:
+            return cls.from_slice(c.begin_parse())
+        except Exception:
+            return None
