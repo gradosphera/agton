@@ -95,7 +95,7 @@ class TonApiClient(Provider, BaseApiClient):
         state = Cell.from_boc(state)
         return state.begin_parse().load_tlb(account)
     
-    def get_account_transactions(self, address: Address) -> Iterator[Transaction]:
+    def get_account_transactions(self, address: Address) -> Iterator[tuple[Transaction, bytes]]:
         url = f'/v2/blockchain/accounts/{address}/transactions'
         before_lt = None
         limit = 100
@@ -111,7 +111,7 @@ class TonApiClient(Provider, BaseApiClient):
                 raw = tx["raw"]
                 cell = Cell.from_boc(raw)
                 transaction = Transaction.from_cell(cell)
-                yield transaction
+                yield transaction, cell.hash()
             if len(txs) < limit:
                 break 
             before_lt = txs[-1]["lt"]

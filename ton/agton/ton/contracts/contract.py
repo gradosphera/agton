@@ -52,7 +52,7 @@ class Contract:
     def get_account_state(self) -> Account:
         return self.provider.get_account_state(self.address)
     
-    def get_transactions(self) -> Iterator[Transaction]:
+    def get_transactions(self) -> Iterator[tuple[Transaction, bytes]]:
         return self.provider.get_account_transactions(self.address)
 
     def get_balance_with_extracurrency(self) -> CurrencyCollection:
