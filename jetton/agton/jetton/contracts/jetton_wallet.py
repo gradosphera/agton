@@ -63,7 +63,7 @@ class JettonWallet(Contract):
                            query_id: int,
                            amount: int,
                            response_destination: MsgAddress,
-                           value: int | CurrencyCollection = to_nano(0.5),
+                           value: int | CurrencyCollection = to_nano('0.5'),
                            custom_payload: Cell | None = None) -> MessageRelaxed:
         body = JettonBurn(
             query_id, amount, response_destination, custom_payload
