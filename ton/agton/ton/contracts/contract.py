@@ -87,3 +87,8 @@ class Contract:
         if s is None:
             return None
         return s.data
+
+    def __repr__(self) -> str:
+        contact_name = self.__class__.__name__
+        formatted_address = self.address.format(testnet_only=self.provider.network.is_testnet())
+        return f'{contact_name}({formatted_address})'
