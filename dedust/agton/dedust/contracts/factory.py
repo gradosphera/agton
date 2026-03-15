@@ -25,10 +25,10 @@ class Factory(Contract):
     def get_vault_address(self, asset: Asset) -> Address:
         s = self.run_get_method('get_vault_address', [asset.to_slice()])
         match s:
-            case Slice():
-                return s.load_address()
-            case Cell():
-                return s.begin_parse().load_address()
+            case (Slice() as cs,):
+                return cs.load_address()
+            case (Cell() as c,):
+                return c.begin_parse().load_address()
             case _:
                 raise TypeError(f'Unexpected result for get_vault_address: {s!r}')
 
@@ -57,10 +57,10 @@ class Factory(Contract):
         s = self.run_get_method('get_pool_address', [pool_type, asset0.to_slice(), asset1.to_slice()])
 
         match s:
-            case Slice():
-                return s.load_address()
-            case Cell():
-                return s.begin_parse().load_address()
+            case (Slice() as cs,):
+                return cs.load_address()
+            case (Cell() as c,):
+                return c.begin_parse().load_address()
             case _:
                 raise TypeError(f'Unexpected result for get_pool_address: {s!r}')
     

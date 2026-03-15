@@ -159,7 +159,7 @@ class WalletV4R2(Contract):
     def seqno(self) -> int:
         s = self.run_get_method('seqno')
         match s:
-            case int(): return s
+            case (int(x),): return x
             case _: raise TypeError(f'Unexpected result for seqno: {s!r}')
 
     @classmethod

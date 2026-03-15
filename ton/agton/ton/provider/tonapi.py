@@ -1,6 +1,6 @@
 import base64
 
-from typing import Literal, Iterator
+from typing import Literal, Iterator, Iterable
 
 from .base_api_client import BaseApiClient
 from .provider import Provider
@@ -22,7 +22,7 @@ def encode_tvm_value(v: TvmValue) -> dict:
         }
     if isinstance(v, Slice):
         return {
-            'type': 'slice',
+            'type': 'slice_boc_hex',
             'value': v.to_cell().to_boc().hex()
         }
     raise ValueError('Stack supports only int, Cell and Slice types')
@@ -68,19 +68,13 @@ class TonApiClient(Provider, BaseApiClient):
         BaseApiClient.__init__(self, host, api_key=('X-Api-Key', api_key) if api_key else None, rps=rps)
 
 
-    def raw_run_get_method(self,
-                           a: MsgAddressInt,
-                           method_id: int,
-                           stack: tuple[TvmValue, ...],
-                           method: str | None = None) -> tuple[TvmValue, ...]:
-        if method is None:
-            raise ValueError('method_id as integer is not supported by TonApi')
+    def run_get_method(self, address: Address, method: str, args: Iterable[TvmValue] = ()) -> tuple[TvmValue, ...]:
         data = {
             'args': [
-                encode_tvm_value(v) for v in stack
+                encode_tvm_value(v) for v in args
             ]
         }
-        url = f'/v2/blockchain/accounts/{a}/methods/{method}'
+        url = f'/v2/blockchain/accounts/{address}/methods/{method}'
         r = self.post(url, json=data)
         s = r['stack']
         c = r['exit_code']

@@ -19,10 +19,8 @@ class Contract:
         self.address = address
         self.provider = provider
     
-    def run_get_method(self,
-                       method_id: int | str,
-                       stack: Iterable[TvmValue] | TvmValue = ()) -> tuple[TvmValue, ...] | TvmValue:
-        return self.provider.run_get_method(self.address, method_id, stack)
+    def run_get_method(self, method: str, args: Iterable[TvmValue] = ()) -> tuple[TvmValue, ...]:
+        return self.provider.run_get_method(self.address, method, args)
     
     def send_external_message(self, msg: Message) -> bytes:
         return self.provider.send_external_message(msg)

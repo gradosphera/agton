@@ -20,14 +20,14 @@ class JettonMaster(Contract):
             case (
                 int() as total_supply,
                 int() as mintable,
-                Slice() as admin_address,
+                Cell() as admin_address,
                 Cell() as jetton_content,
                 Cell() as jetton_wallet_code
             ):
                 return JettonMasterData(
                     total_supply,
                     bool(mintable),
-                    admin_address.load_address(),
+                    admin_address.begin_parse().load_address(),
                     jetton_content,
                     jetton_wallet_code
                 )
@@ -35,12 +35,12 @@ class JettonMaster(Contract):
                 raise TypeError(f"Unexpected result for get_jetton_data: {s!r}")
     
     def get_wallet_address(self, owner: Address) -> Address:
-        s = self.run_get_method('get_wallet_address', owner.to_slice())
+        s = self.run_get_method('get_wallet_address', [owner.to_slice()])
         match s:
-            case Slice():
-                return s.load_address()
-            case Cell():
-                return s.begin_parse().load_address()
+            case (Slice() as cs,):
+                return cs.load_address()
+            case (Cell() as c,):
+                return c.begin_parse().load_address()
             case _:
                 raise TypeError(f"Unexpected result for get_wallet_address: {s!r}")
     
