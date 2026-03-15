@@ -82,11 +82,11 @@ class Slice:
         self.ld += n
         return self
 
-    def skip_prefix(self, p: BitString | tuple[int, int]) -> None:
+    def skip_prefix(self, p: BitString | tuple[int, int]) -> Self:
         if not self.starts_with(p):
             raise ValueError('Wrong prefix')
         n = p[1] if isinstance(p, tuple) else len(p)
-        self.skip_bits(n)
+        return self.skip_bits(n)
 
     def preload_ref(self) -> Cell:
         self._ensure_refs_cap(1)
